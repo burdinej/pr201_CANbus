@@ -1,5 +1,4 @@
 # pr201_CANbus
-updated 6/20/2025 10:55AM Central
 Software and Documentation relevant to implementing CANbus communication with the Yuxin PR201 Motor Driver
 
 The serialization and deserialization functions can be accessed independently in the respectively named folders.
