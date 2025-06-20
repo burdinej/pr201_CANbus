@@ -19,7 +19,6 @@ struct MonitoringData {
     bool forward;
     bool backward;
     bool brake;
-    bool enable;
     int16_t encoder_speed; //RPM
     int motor_temp;
     int controller_temp;
@@ -55,10 +54,9 @@ void serialize_can_message(uint8_t* data, int speed_val, bool forward, bool back
 // Deserialize driver status CAN messages
 void deserialize_can_message(uint32_t can_id, uint8_t* data, MonitoringData& dat) {
     if ((can_id >> 4) == 0x18) {   //// Motor Status Data
-        dat.forward = (data[0] & 0x01) != 0;
-        dat.backward = (data[0] & 0x02) != 0;
-        dat.brake = (data[0] & 0x04) != 0;
-        dat.enable = (data[0] & 0x08) != 0;
+        dat.forward = data[0] != 0;
+        dat.backward = data[1] != 0;
+        dat.brake = data[2] != 0;
         dat.encoder_speed = (static_cast<int16_t>(data[3]) << 8) | data[4];
         dat.motor_temp = static_cast<int>(data[5]) - 40;  // It is 1 deg C with offset 40
         dat.controller_temp = static_cast<int>(data[6]) - 40;  // It is 1 deg C with offset 40
@@ -102,7 +100,6 @@ void monitoring_data_publish_thread(zmq::socket_t& monitoring_pub_socket, int ca
                       << " | Forward: " << dat.forward
                       << " | Backward: " << dat.backward
                       << " | Brake: " << dat.brake
-                      << " | Enable: " << dat.enable
                       << " | Encoder Speed: " << dat.encoder_speed << " RPM"
                       << " | Motor Temp: " << dat.motor_temp << " C"
                       << " | Controller Temp: " << dat.controller_temp << " C"
@@ -112,12 +109,12 @@ void monitoring_data_publish_thread(zmq::socket_t& monitoring_pub_socket, int ca
                       << std::endl;
             // Publish parsed monitoring data fields to Python
             char msg[256];
-            snprintf(msg, sizeof(msg), "%03X %d %d %d %d %d %d %d %d %.2f %.2f",
+            snprintf(msg, sizeof(msg), "%03X %d %d %d %d %d %d %d %.2f %.2f",
                 frame.can_id,
-                dat.forward, dat.backward, dat.brake, dat.enable, dat.encoder_speed,
+                dat.forward, dat.backward, dat.brake, dat.encoder_speed,
                 dat.motor_temp, dat.controller_temp, dat.fault_code,
                 dat.battery_voltage, dat.busbar_current);
-            zmq::message_t zmq_msg(msg, strlen(msg));
+            zmq::message_t zmq_msg(msg, strlen(msg));   
             monitoring_pub_socket.send(zmq_msg, zmq::send_flags::none);
         }
     }

@@ -18,7 +18,7 @@ def resource_path(relative_path):
     return os.path.join(os.path.abspath("."), relative_path)
 
 # Start the C++ backend as a subprocess
-backend_path = resource_path("../compiled_out/can_server")
+backend_path = resource_path("can_server")  # PyInstaller will place can_server in the same directory
 # Try to use xterm, fallback to gnome-terminal if not available
 try:
     backend_proc = subprocess.Popen([
@@ -278,14 +278,15 @@ class MonitorWindow(QWidget):
         
         self.setLayout(main_layout)
     
-    def update_status(self, can_id, forward, backward, brake, motor, encoder_speed, motor_temp, controller_temp, fault_code, battery_voltage, busbar_current):
+    def update_status(self, can_id, forward, backward, brake, encoder_speed, motor_temp, controller_temp, fault_code, battery_voltage, busbar_current):
         """
         Update the monitoring window with new monitoring data received from the C++ server.
         """
+        print(can_id, forward, backward, brake, encoder_speed, motor_temp, controller_temp, fault_code, battery_voltage, busbar_current)
         self.forward_label.setText("ON" if forward else "OFF")
         self.backward_label.setText("ON" if backward else "OFF")
         self.brake_label.setText("ON" if brake else "OFF")
-        self.motor_label.setText("ON" if motor else "OFF")
+        self.motor_label.setText("ON" if forward or backward else "OFF")
         self.encoder_speed_label.setText(f"{encoder_speed} RPM")
         self.motor_temp_label.setText(f"{motor_temp} °C")
         self.controller_temp_label.setText(f"{controller_temp} °C")
@@ -317,20 +318,19 @@ class MainWindow(QMainWindow):
         try:
             # Parse message: "CAN_ID forward backward brake encoder_speed motor_temp controller_temp fault_code battery_voltage busbar_current"
             parts = message.split()
-            if len(parts) == 11:
+            if len(parts) == 10:
                 can_id = int(parts[0], 16)
                 forward = bool(int(parts[1]))
                 backward = bool(int(parts[2]))
                 brake = bool(int(parts[3]))
-                motor = bool(int(parts[4]))
-                encoder_speed = int(parts[5])
-                motor_temp = int(parts[6])
-                controller_temp = int(parts[7])
-                fault_code = int(parts[8])
-                battery_voltage = float(parts[9])
-                busbar_current = float(parts[10])
+                encoder_speed = int(parts[4])
+                motor_temp = int(parts[5])
+                controller_temp = int(parts[6])
+                fault_code = int(parts[7])
+                battery_voltage = float(parts[8])
+                busbar_current = float(parts[9])
                 self.monitor_window.update_status(
-                    can_id, forward, backward, brake, motor, encoder_speed, motor_temp, controller_temp, fault_code, battery_voltage, busbar_current
+                    can_id, forward, backward, brake, encoder_speed, motor_temp, controller_temp, fault_code, battery_voltage, busbar_current
                 )
         except (ValueError, IndexError) as e:
             print(f"Error parsing monitoring data: {e}")
