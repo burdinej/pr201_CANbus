@@ -1,0 +1,3 @@
+[submodule "Motor_Control_GUI/cppzmq"]
+	path = Motor_Control_GUI/cppzmq
+	url = https://github.com/zeromq/cppzmq.git
